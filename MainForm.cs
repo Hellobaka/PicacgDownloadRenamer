@@ -1,4 +1,7 @@
 using Newtonsoft.Json.Linq;
+#if NET48
+using Microsoft.WindowsAPICodePack.Dialogs;
+#endif
 using PicacgDownloadRenamer.Models;
 using SqlSugar;
 
@@ -9,6 +12,9 @@ namespace PicacgDownloadRenamer
         public MainForm()
         {
             InitializeComponent();
+#if NET48
+            Font = new Font("Î¢ÈíÑÅºÚ", 12);
+#endif
         }
 
         private string DBPath { get; set; } = "";
@@ -21,7 +27,11 @@ namespace PicacgDownloadRenamer
 
         private async Task AddActionHistory(string message, bool needAlarm = false)
         {
+#if NET5_0_OR_GREATER
             await InvokeAsync(() => ActionDisplay.Items.Add(message));
+#else
+            Invoke(() => ActionDisplay.Items.Add(message));
+#endif
             if (needAlarm)
             {
                 ShowError(message);
@@ -30,6 +40,7 @@ namespace PicacgDownloadRenamer
 
         private void BrowserButton_Click(object sender, EventArgs e)
         {
+#if NET5_0_OR_GREATER
             var dialog = new FolderBrowserDialog()
             {
                 Multiselect = true
@@ -42,6 +53,21 @@ namespace PicacgDownloadRenamer
                 OutputPath = Path.GetDirectoryName(SelectedFolders.FirstOrDefault() ?? "");
                 OutputPathPreview.Text = OutputPath;
             }
+#else
+            var dialog = new CommonOpenFileDialog
+            {
+                Multiselect = true,
+                IsFolderPicker = true,
+            };
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                SelectedFolders = [];
+                SelectedFolders.AddRange(dialog.FileNames);
+                PathPreviews.Text = string.Join("; ", SelectedFolders);
+                OutputPath = Path.GetDirectoryName(SelectedFolders.FirstOrDefault() ?? "");
+                OutputPathPreview.Text = OutputPath;
+            }
+#endif
         }
 
         private void BrowserOutputButton_Click(object sender, EventArgs e)
@@ -353,7 +379,11 @@ namespace PicacgDownloadRenamer
 
         private async Task UpdateProgress(int current, int max, bool hasError)
         {
+#if NET48
+            Invoke(() =>
+#else
             await InvokeAsync(() =>
+#endif
             {
                 bool isComplete = current != max;
                 DBSelectButton.Enabled = !isComplete;
